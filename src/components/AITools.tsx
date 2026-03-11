@@ -4,7 +4,15 @@ import { GoogleGenAI } from "@google/genai";
 import Markdown from 'react-markdown';
 import { clsx } from 'clsx';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const geminiApiKey = process.env.GEMINI_API_KEY || '';
+let ai: GoogleGenAI | null = null;
+try {
+  if (geminiApiKey) {
+    ai = new GoogleGenAI({ apiKey: geminiApiKey });
+  }
+} catch (e) {
+  console.warn('Gemini AI initialization failed:', e);
+}
 
 export function AITools() {
   const [activeTool, setActiveTool] = useState<'analyst' | 'pitcher' | 'hype' | null>(null);
@@ -50,6 +58,11 @@ export function AITools() {
     setResult('');
 
     try {
+      if (!ai) {
+        setResult("AI module offline. GEMINI_API_KEY not configured.");
+        setLoading(false);
+        return;
+      }
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: [{ role: 'user', parts: [{ text: tool.prompt }] }],
