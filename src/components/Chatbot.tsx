@@ -4,7 +4,15 @@ import { GoogleGenAI } from "@google/genai";
 import Markdown from 'react-markdown';
 import { clsx } from 'clsx';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const geminiApiKey = process.env.GEMINI_API_KEY || '';
+let ai: GoogleGenAI | null = null;
+try {
+  if (geminiApiKey) {
+    ai = new GoogleGenAI({ apiKey: geminiApiKey });
+  }
+} catch (e) {
+  console.warn('Gemini AI initialization failed:', e);
+}
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +38,11 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
+      if (!ai) {
+        setMessages(prev => [...prev, { role: 'model', text: "AI module offline. GEMINI_API_KEY not configured." }]);
+        setIsLoading(false);
+        return;
+      }
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: messages.concat({ role: 'user', text: userMsg }).map(m => ({
